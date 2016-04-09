@@ -61,10 +61,12 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'dashboard',
 )
 
 MIDDLEWARE_CLASSES = (
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     #'django.middleware.csrf.CsrfViewMiddleware',
@@ -119,11 +121,11 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # logging configuration
 #
 
-#restful framework
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAdminUser',),
-    'PAGINATE_BY': None
-}
+# #restful framework
+# REST_FRAMEWORK = {
+#     'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAdminUser',),
+#     'PAGINATE_BY': None
+# }
 
 LOGGING = {
     'version': 1,
@@ -146,7 +148,7 @@ LOGGING = {
         'default': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_ROOT, 'orchestra.log'),
+            'filename': os.path.join(LOG_ROOT, 'common.log'),
             #'when': 'midnight',
             'formatter': 'verbose'
         }
@@ -159,5 +161,7 @@ LOGGING = {
         }
     }
 }
+
+CORS_ORIGIN_ALLOW_ALL = True
 
 from bootstrap import *

@@ -1,11 +1,11 @@
 __author__ = 'jian.zhang'
 
 from sysconf.settings import *
-from utils.random import create_id
+from utils import util
 import requests,json
 
 
-def searchVp(query_string):
+def searchVp(query_string, isSimple):
     res = []
     url = ES_HOST + "/" + INDEX + "/" + VIEWPOINT_TYPE + "/_search"
     data = {
@@ -20,7 +20,10 @@ def searchVp(query_string):
     r = requests.post(url, data=json.dumps(data))
     hits = r.json()["hits"]["hits"]
     for hit in hits:
-        res.append(hit["_source"])
+        if isSimple:
+            res.append(hit["_source"]["name"])
+        else:
+            res.append(hit["_source"])
     return res
 
 
@@ -30,7 +33,7 @@ def getVpPin(vp_id):
     return r.json()["_source"]["pin"]["location"]
 
 
-def getNearbyVp(pin):
+def getNearbyVp(pin, distance):
     res = []
     url = ES_HOST + "/" + INDEX + "/" + VIEWPOINT_TYPE + "/_search"
     data = {
@@ -38,7 +41,7 @@ def getNearbyVp(pin):
         "filtered": {
           "filter": {
             "geo_distance": {
-              "distance": "8km",
+              "distance": str(distance) + "km",
               "pin.location": pin
             }
           }
@@ -54,7 +57,7 @@ def getNearbyVp(pin):
 
 
 def createStream(vp_id, user_id, title):
-    st_id = create_id(user_id)
+    st_id = util.create_id(user_id)
     url = ES_HOST + "/" + INDEX + "/" + STREAM_TYPE + "/" + st_id
     data = {
         "st_id": st_id,
@@ -72,6 +75,14 @@ def getStream(st_id):
     url = ES_HOST + "/" + INDEX + "/" + STREAM_TYPE + "/" + str(st_id)
     r = requests.get(url)
     return r.json()["_source"]
+
+
+def doFavoriteStream(st_id):
+    source = getStream(st_id)
+    url = ES_HOST + "/" + INDEX + "/" + STREAM_TYPE + "/" + str(st_id)
+    source["favorites_count"] += 1
+    r = requests.post(url, data=json.dumps(source))
+    return True
 
 
 def getStreamlist(status, vp_id):
@@ -105,7 +116,36 @@ def getStreamlist(status, vp_id):
     return res
 
 
+def deleteStream(st_id):
+    url = ES_HOST + "/" + INDEX + "/" + STREAM_TYPE + "/" + str(st_id)
+    r = requests.delete(url)
+    return {"message": True}
 
 
+def addUser(username, password):
+    id = util.get_hash(username)
+    url = ES_HOST + "/" + INDEX + "/" + USER_TYPE + "/%d" % (id,)
+    data = {
+        "user_id": id,
+        "username": username,
+        "password": password,
+    }
+    r = requests.post(url, data=json.dumps(data))
+    return {"message": True, "user_id": id}
 
 
+def getUser(username):
+    url = ES_HOST + "/" + INDEX + "/" + USER_TYPE + "/_search"
+    data = {
+      "query": {
+        "query_string": {
+          "query": "username: "+username
+        }
+      },
+      "size": 1
+    }
+    r = requests.post(url, data=json.dumps(data))
+    hits = r.json()["hits"]["hits"]
+
+    if hits:
+        return hits[0]["_source"]["user_id"]
