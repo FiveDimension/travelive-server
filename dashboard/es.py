@@ -14,14 +14,14 @@ def searchVp(query_string, isSimple):
           "query": query_string
         }
       },
-      "size": 20
+      "size": 100
     }
 
     r = requests.post(url, data=json.dumps(data))
     hits = r.json()["hits"]["hits"]
     for hit in hits:
         if isSimple:
-            res.append(hit["_source"]["name"])
+            res.append({"name": hit["_source"]["name"], "vp_id": hit["_source"]["vp_id"]})
         else:
             res.append(hit["_source"])
     return res
@@ -106,13 +106,19 @@ def getStreamlist(status, vp_id):
               }
             }
           },
-          "size": 20
+          "size": 100
         }
 
     r = requests.post(url, data=json.dumps(data))
     hits = r.json()["hits"]["hits"]
     for hit in hits:
-        res.append(hit["_source"])
+            source = hit["_source"]
+            user_id = source["p_user_id"]
+            url = ES_HOST + "/" + INDEX + "/" + USER_TYPE + "/" + str(user_id)
+            r = requests.get(url)
+            username = r.json()["_source"]["username"]
+            source["username"] = username
+            res.append(source)
     return res
 
 
@@ -120,6 +126,38 @@ def deleteStream(st_id):
     url = ES_HOST + "/" + INDEX + "/" + STREAM_TYPE + "/" + str(st_id)
     r = requests.delete(url)
     return {"message": True}
+
+def closeStream(st_id):
+    url = ES_HOST + "/" + INDEX + "/" + STREAM_TYPE + "/" + str(st_id)
+    r = requests.get(url)
+    source = r.json()["_source"]
+    source["status"] = "offline"
+    r = requests.post(url, data=json.dumps(source))
+    return {"message": True}
+
+
+def getStreamlistByUser(user_id):
+    res = []
+    url = ES_HOST + "/" + INDEX + "/" + USER_TYPE + "/" + str(user_id)
+    r = requests.get(url)
+    username = r.json()["_source"]["username"]
+
+    url = ES_HOST + "/" + INDEX + "/" + STREAM_TYPE + "/_search"
+    data = {
+      "query": {
+        "query_string": {
+          "query": "p_user_id: "+ str(user_id)
+        }
+      },
+      "size": 200
+    }
+    r = requests.post(url, data=json.dumps(data))
+    hits = r.json()["hits"]["hits"]
+    for hit in hits:
+        source = hit["_source"]
+        source["username"] = username
+        res.append(source)
+    return res
 
 
 def addUser(username, password):
@@ -149,3 +187,46 @@ def getUser(username):
 
     if hits:
         return hits[0]["_source"]["user_id"]
+
+
+def getVpList(vp_id_list):
+    res = []
+    url = ES_HOST + "/" + INDEX + "/" + VIEWPOINT_TYPE + "/_search"
+    query_string = "vp_id:(%s)" % (" ".join([str(i) for i in vp_id_list]))
+    data = {
+      "query": {
+        "query_string": {
+          "query": query_string
+        }
+      },
+      "size": 100
+    }
+
+    r = requests.post(url, data=json.dumps(data))
+    hits = r.json()["hits"]["hits"]
+    for hit in hits:
+        res.append(hit["_source"])
+    return res
+
+
+def getLocation(vp_id_list):
+    res = {}
+    url = ES_HOST + "/" + INDEX + "/" + VIEWPOINT_TYPE + "/_search"
+    query_string = "vp_id:(%s)" % (" ".join([str(i) for i in vp_id_list]))
+    data = {
+      "query": {
+        "query_string": {
+          "query": query_string
+        }
+      },
+      "size": 100
+    }
+
+    r = requests.post(url, data=json.dumps(data))
+    hits = r.json()["hits"]["hits"]
+    for hit in hits:
+        source = hit["_source"]
+        vp_id = source["vp_id"]
+        location = source["pin"]["location"]
+        res[vp_id] = location
+    return res

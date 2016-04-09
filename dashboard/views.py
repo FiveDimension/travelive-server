@@ -3,9 +3,11 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render_to_response, HttpResponse
 import logging
-from dashboard import es
+import sys
+from dashboard import es,amap
 import json
 from utils.view_helpers import HttpAjaxResponse
+from utils import util
 
 logger = logging.getLogger("default")
 
@@ -67,7 +69,7 @@ def createStream(request):
     user_id = param.get("user_id")
     title = param.get("title", "")
     st_id = es.createStream(vp_id,user_id, title)
-    return HttpAjaxResponse({"st_id": int(st_id)})
+    return HttpAjaxResponse({"st_id": st_id})
 
 
 @csrf_exempt
@@ -87,12 +89,24 @@ def getStreamList(request):
         status = "online"
     return HttpAjaxResponse(es.getStreamlist(status, vp_id))
 
+@csrf_exempt
+def getStreamListByUser(request):
+    param = json.loads(request.body)
+    user_id = param.get("user_id")
+    return HttpAjaxResponse(es.getStreamlistByUser(user_id))
+
 
 @csrf_exempt
 def deleteStream(request):
     param = json.loads(request.body)
     st_id = param.get("st_id")
     return HttpAjaxResponse(es.deleteStream(st_id))
+
+@csrf_exempt
+def closeStream(request):
+    param = json.loads(request.body)
+    st_id = param.get("st_id")
+    return HttpAjaxResponse(es.closeStream(st_id))
 
 
 @csrf_exempt
@@ -122,8 +136,34 @@ def login(request):
     else:
         return HttpAjaxResponse({"message": False})
 
+@csrf_exempt
+def getVpList(request):
+    param = json.loads(request.body)
+    vp_id_list = param.get("vp_id_list")
+    return HttpAjaxResponse(es.getVpList(vp_id_list))
+
 
 @csrf_exempt
-def addRoute(request):
+def createRoute(request):
     param = json.loads(request.body)
-    user_id = param.get("user_id")
+    vp_id_list = param.get("vp_id_list")
+    locations = es.getLocation(vp_id_list)
+    mm_list = util.getMM(vp_id_list)
+    all_conn = []
+    for m in mm_list:
+        location1 = locations.get(m[0])
+        location2 = locations.get(m[1])
+        duration = amap.getDirection(location1, location2)
+        all_conn.append({"vp_start": m[0], "vp_end": m[1], "duration": duration})
+    all_path = util.getAllPath(vp_id_list, all_conn)
+    min_duration = sys.maxint
+    current_vp_ids = []
+    print(all_path)
+    for i in all_path:
+        duration_sum = 0
+        for j in i[1][:len(i[1])-1]:
+            duration_sum += j
+        if min_duration > duration_sum:
+            min_duration = duration_sum
+            current_vp_ids = i[0]
+    return HttpAjaxResponse(current_vp_ids)
