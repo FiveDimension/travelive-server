@@ -48,10 +48,10 @@ def getVpDetail(request):
     res = []
     param = json.loads(request.body)
     vp_id = param.get("vp_id")
-    status = param.get("status", "online")
+    status = param.get("status", "*")
     distance = param.get("distance", "5")
     if not status:
-        status = "online"
+        status = "*"
     if not distance:
         distance = "5"
     pin = es.getVpPin(vp_id)
@@ -84,9 +84,9 @@ def getStream(request):
 def getStreamList(request):
     param = json.loads(request.body)
     vp_id = param.get("vp_id")
-    status = param.get("status", "online")
+    status = param.get("status", "*")
     if not status:
-        status = "online"
+        status = "*"
     return HttpAjaxResponse(es.getStreamlist(status, vp_id))
 
 @csrf_exempt
@@ -122,7 +122,7 @@ def doFavorite(request):
 def addUser(request):
     param = json.loads(request.body)
     username = param.get("username")
-    password = param.get("password", "")
+    password = param.get("password", 1)
     return HttpAjaxResponse(es.addUser(username, password))
 
 
