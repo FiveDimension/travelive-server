@@ -16,6 +16,7 @@ def searchVp(query_string):
       },
       "size": 20
     }
+
     r = requests.post(url, data=json.dumps(data))
     hits = r.json()["hits"]["hits"]
     for hit in hits:
@@ -24,7 +25,7 @@ def searchVp(query_string):
 
 
 def getVpPin(vp_id):
-    url = ES_HOST + "/" + INDEX + "/" + STREAM_TYPE + "/" +"vp_"+ str(vp_id)
+    url = ES_HOST + "/" + INDEX + "/" + VIEWPOINT_TYPE + "/" +"vp_"+ str(vp_id)
     r = requests.get(url)
     return r.json()["_source"]["pin"]["location"]
 
@@ -38,9 +39,7 @@ def getNearbyVp(pin):
           "filter": {
             "geo_distance": {
               "distance": "8km",
-              "pin.location": {
-                pin
-              }
+              "pin.location": pin
             }
           }
         }
