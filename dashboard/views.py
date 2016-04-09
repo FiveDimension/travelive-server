@@ -158,7 +158,6 @@ def createRoute(request):
     all_path = util.getAllPath(vp_id_list, all_conn)
     min_duration = sys.maxint
     current_vp_ids = []
-    print(all_path)
     for i in all_path:
         duration_sum = 0
         for j in i[1][:len(i[1])-1]:
