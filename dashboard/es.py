@@ -85,6 +85,37 @@ def doFavoriteStream(st_id):
     return True
 
 
+def getHotStream():
+    res = []
+    url = ES_HOST + "/" + INDEX + "/" + STREAM_TYPE + "/_search"
+    data = {
+      "query": {
+        "query_string": {
+          "query": "favorites_count:>5"
+        }
+      },
+      "size": 100
+    }
+
+    r = requests.post(url, data=json.dumps(data))
+    hits = r.json()["hits"]["hits"]
+    print hits
+    for hit in hits:
+            source = hit["_source"]
+            user_id = source["p_user_id"]
+            vp_id = source["p_vp_id"]
+            url = ES_HOST + "/" + INDEX + "/" + USER_TYPE + "/" + str(user_id)
+            r = requests.get(url)
+            username = r.json()["_source"]["username"]
+            source["username"] = username
+            url = ES_HOST + "/" + INDEX + "/" + VIEWPOINT_TYPE + "/vp_" + str(vp_id)
+            r = requests.get(url)
+            vp = r.json()["_source"]
+            source["vp"] = vp
+            res.append(source)
+    return res
+
+
 def getStreamlist(status, vp_id):
     res = []
     url = ES_HOST + "/" + INDEX + "/" + STREAM_TYPE + "/_search"
@@ -134,6 +165,7 @@ def closeStream(st_id):
     source["status"] = "offline"
     r = requests.post(url, data=json.dumps(source))
     return {"message": True}
+
 
 
 def getStreamlistByUser(user_id):

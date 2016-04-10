@@ -110,6 +110,13 @@ def closeStream(request):
 
 
 @csrf_exempt
+def getHotStream(request):
+    # param = json.loads(request.body)
+    # st_id = param.get("st_id")
+    return HttpAjaxResponse(es.getHotStream())
+
+
+@csrf_exempt
 def doFavorite(request):
     param = json.loads(request.body)
     # user_id = param.get("user_id")
